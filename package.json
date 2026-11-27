@@ -32,7 +32,7 @@
     "dev": "tsx watch examples/notes-server/main.ts",
     "start": "node dist/examples/notes-server/main.js",
     "start:stdio": "node dist/examples/notes-server/main.js --stdio",
-    "token:mint": "tsx scripts/mint-token.ts"
+    "tokens": "tsx scripts/tokens.ts"
   },
   "keywords": [
     "mcp",
