@@ -66,10 +66,9 @@ jobs:
             -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
           echo "$out"
-          names=$(echo "$out" | jq -r '.result.tools[].name' | sort | tr '
-' ' ')
+          names=$(echo "$out" | jq -r '.result.tools[].name' | sort | paste -sd' ')
           echo "tools visible to a read token: $names"
-          test "$names" = "get_note list_notes "
+          test "$names" = "get_note list_notes"
 
       - name: Container logs
         if: always()
