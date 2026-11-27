@@ -12,7 +12,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(0).max(65535).default(3000),
   MCP_PATH: z.string().startsWith("/").default("/mcp"),
   TOKENS_FILE: z.string().min(1).default("./data/tokens.json"),
-  RATE_LIMIT_CAPACITY: z.coerce.number().positive().default(60),
+  RATE_LIMIT_CAPACITY: z.coerce.number().min(1).default(60),
   RATE_LIMIT_REFILL_PER_SEC: z.coerce.number().positive().default(1),
   RATE_LIMIT_DISABLED: z
     .enum(["true", "false", "1", "0"])
@@ -32,7 +32,11 @@ export type Config = z.output<typeof envSchema>;
 
 /** Parses configuration from environment variables, failing fast with a readable message. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = envSchema.safeParse(env);
+  // An empty value (`PORT=` in a .env file, or `PORT: ${PORT}` in compose with
+  // PORT unset) means "not set". Without this, `z.coerce.number()` turns ""
+  // into 0 and the server silently binds a random port.
+  const defined = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v.trim() !== ""));
+  const parsed = envSchema.safeParse(defined);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`);
     throw new Error(`invalid configuration:\n${lines.join("\n")}`);

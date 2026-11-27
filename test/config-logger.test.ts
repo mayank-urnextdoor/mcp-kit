@@ -28,6 +28,21 @@ describe("loadConfig", () => {
     expect(config.STDIO_SCOPES).toEqual(["read"]);
   });
 
+  it("treats empty values as unset", () => {
+    const config = loadConfig({ PORT: "", HOST: " ", RATE_LIMIT_DISABLED: "", MAX_BODY_BYTES: "", STDIO_SCOPES: "" });
+    expect(config).toMatchObject({
+      PORT: 3000,
+      HOST: "127.0.0.1",
+      RATE_LIMIT_DISABLED: false,
+      MAX_BODY_BYTES: 1024 * 1024,
+      STDIO_SCOPES: ["read", "write"],
+    });
+  });
+
+  it("rejects a rate limit capacity below 1 as a config error", () => {
+    expect(() => loadConfig({ RATE_LIMIT_CAPACITY: "0.5" })).toThrow(/invalid configuration[\s\S]*RATE_LIMIT_CAPACITY/);
+  });
+
   it("fails fast with every problem listed", () => {
     expect(() => loadConfig({ PORT: "abc", LOG_LEVEL: "loud", STDIO_SCOPES: "Bad Scope" })).toThrow(
       /PORT[\s\S]*LOG_LEVEL[\s\S]*STDIO_SCOPES/,
