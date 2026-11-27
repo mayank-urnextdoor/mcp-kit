@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-kit-notes": {
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-kit/dist/examples/notes-server/main.js", "--stdio"],
+      "env": {
+        "STDIO_SCOPES": "read,write",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
