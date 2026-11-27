@@ -29,3 +29,46 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t mcp-kit .
+
+      - name: Run container and wait for healthy
+        run: |
+          docker run -d --name mcp-kit -p 127.0.0.1:3000:3000 -v mcp-kit-data:/app/data mcp-kit
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' mcp-kit)
+            echo "health: $status"
+            [ "$status" = "healthy" ] && break
+            sleep 2
+          done
+          [ "$status" = "healthy" ] || { docker logs mcp-kit; exit 1; }
+
+      - name: Runs as non-root
+        run: test "$(docker exec mcp-kit id -un)" = "node"
+
+      - name: Mint a token and call the server as the README shows
+        run: |
+          TOKEN=$(docker exec mcp-kit node dist/scripts/tokens.js mint --name ci --scopes read | grep -o 'mcpk_[A-Za-z0-9_-]*' | head -1)
+          test -n "$TOKEN"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/mcp \
+            -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
+          echo "no token -> $code"; test "$code" = "401"
+          out=$(curl -s -X POST http://127.0.0.1:3000/mcp \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
+          echo "$out"
+          echo "$out" | grep -q list_notes
+          if echo "$out" | grep -q create_note; then echo "read token must not see create_note"; exit 1; fi
+
+      - name: Container logs
+        if: always()
+        run: docker logs mcp-kit || true
