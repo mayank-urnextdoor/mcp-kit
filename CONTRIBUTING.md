@@ -9,7 +9,7 @@ npm ci
 npm run typecheck && npm run lint && npm test
 ```
 
-Node.js 22.12 or newer is required (see `.nvmrc`).
+Node.js 22.13 or newer is required (see `.nvmrc`).
 
 ## Ground rules
 
