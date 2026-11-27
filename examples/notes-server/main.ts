@@ -31,9 +31,16 @@ async function main(): Promise<void> {
     return;
   }
 
+  const tokenStore = new FileTokenStore(config.TOKENS_FILE);
+  if ((await tokenStore.list()).length === 0) {
+    logger.warn("token store is empty: every request will get 401 until you mint a token with the tokens CLI", {
+      tokensFile: config.TOKENS_FILE,
+    });
+  }
+
   const running = await startHttpServer({
     factory,
-    tokenStore: new FileTokenStore(config.TOKENS_FILE),
+    tokenStore,
     rateLimiter: config.RATE_LIMIT_DISABLED
       ? undefined
       : new RateLimiter({ capacity: config.RATE_LIMIT_CAPACITY, refillPerSecond: config.RATE_LIMIT_REFILL_PER_SEC }),
@@ -62,5 +69,8 @@ async function main(): Promise<void> {
 
 main().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
+  if ((err as NodeJS.ErrnoException | undefined)?.code === "EADDRINUSE") {
+    console.error("Another process is using that port. Stop it, or set PORT to a free port (PORT=0 picks one).");
+  }
   process.exit(1);
 });

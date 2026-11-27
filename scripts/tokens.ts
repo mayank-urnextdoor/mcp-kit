@@ -18,9 +18,9 @@ const USAGE = `usage:
 
 --file defaults to $TOKENS_FILE, then ./data/tokens.json`;
 
-function fail(message: string): never {
-  console.error(`error: ${message}\n\n${USAGE}`);
-  process.exit(2);
+function fail(message: string, showUsage = true): never {
+  console.error(showUsage ? `error: ${message}\n\n${USAGE}` : `error: ${message}`);
+  process.exit(showUsage ? 2 : 1);
 }
 
 async function main(): Promise<void> {
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
     case "revoke": {
       const id = rest[0];
       if (!id) fail("revoke needs a token id");
-      if (!(await store.remove(id))) fail(`no token with id ${id}`);
+      if (!(await store.remove(id))) fail(`no token with id ${id} in ${store.path}`, false);
       console.error(`revoked ${id}`);
       return;
     }
