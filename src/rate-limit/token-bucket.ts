@@ -47,12 +47,13 @@ export function takeFromBucket(
   cost = 1,
 ): { state: BucketState; decision: RateLimitDecision } {
   const prev = state ?? { units: policy.capacity, updatedAtMs: nowMs };
-  // Guard against clocks moving backwards.
+  // Guard against clocks moving backwards: never credit time twice.
   const elapsedMs = Math.max(0, nowMs - prev.updatedAtMs);
+  const at = Math.max(nowMs, prev.updatedAtMs);
   const units = Math.min(policy.capacity, prev.units + (elapsedMs / 1000) * policy.refillPerSecond);
 
   if (units >= cost) {
-    const next = { units: units - cost, updatedAtMs: nowMs };
+    const next = { units: units - cost, updatedAtMs: at };
     return {
       state: next,
       decision: {
@@ -66,7 +67,7 @@ export function takeFromBucket(
 
   const deficit = cost - units;
   return {
-    state: { units, updatedAtMs: nowMs },
+    state: { units, updatedAtMs: at },
     decision: {
       allowed: false,
       limit: policy.capacity,
