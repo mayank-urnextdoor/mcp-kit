@@ -1,0 +1,57 @@
+{
+  "name": "mcp-kit",
+  "version": "0.1.0",
+  "description": "Batteries-included starter kit for building Model Context Protocol servers in TypeScript: scoped bearer auth, rate limiting, typed tools, structured logs.",
+  "license": "MIT",
+  "author": "Mayank",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayank-urnextdoor/mcp-kit.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx watch examples/notes-server/main.ts",
+    "start": "node dist/examples/notes-server/main.js",
+    "start:stdio": "node dist/examples/notes-server/main.js --stdio",
+    "token:mint": "tsx scripts/mint-token.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "typescript",
+    "server",
+    "starter"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.7",
+    "eslint": "^10.15.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.2"
+  }
+}
