@@ -20,7 +20,7 @@ The official [`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelc
 
 ## Quickstart
 
-Requires Node.js 22.12 or later.
+Requires Node.js 22.13 or later. `npm ci` stops with an `EBADENGINE` error on older versions.
 
 ```bash
 git clone https://github.com/mayank-urnextdoor/mcp-kit.git
@@ -34,6 +34,10 @@ npm run tokens -- mint --name my-laptop --scopes read,write
 npm run dev
 ```
 
+The server logs the URL it listens on. If `PORT` is already set in your shell, that port is used instead of 3000. To capture only the token (for a script or a secret manager), add `-s`: `npm run -s tokens -- mint ...`. Without it, npm prints its script banner to stdout too.
+
+Other token commands: `npm run tokens -- list` and `npm run tokens -- revoke <id>`. Mint with `--expires-in-days N` for a token that expires.
+
 Try it with curl:
 
 ```bash
@@ -46,6 +50,23 @@ curl -s http://127.0.0.1:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"create_note","arguments":{"title":"hello"}}}'
 ```
 
+On Windows PowerShell, `curl` is an alias for `Invoke-WebRequest` and the line continuations above do not work. Use this instead:
+
+```powershell
+$env:MCP_KIT_TOKEN = "mcpk_..."
+$body = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"create_note","arguments":{"title":"hello"}}}'
+Invoke-RestMethod http://127.0.0.1:3000/mcp -Method Post -Body $body -ContentType "application/json" `
+  -Headers @{ Authorization = "Bearer $env:MCP_KIT_TOKEN"; Accept = "application/json, text/event-stream" }
+```
+
+Or point the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) CLI at it:
+
+```bash
+npx @modelcontextprotocol/inspector --cli http://127.0.0.1:3000/mcp --transport http   --header "Authorization: Bearer $MCP_KIT_TOKEN" --method tools/list
+```
+
+To run the compiled build instead of `tsx`: `npm run build`, then `npm start` (HTTP) or `node dist/examples/notes-server/main.js --stdio`.
+
 ### Connect a client
 
 **Claude Code (HTTP).** From any directory:
@@ -57,7 +78,7 @@ claude mcp add --transport http mcp-kit-notes http://127.0.0.1:3000/mcp \
 
 Or commit [`examples/client-config/claude-code.mcp.json`](examples/client-config/claude-code.mcp.json) as `.mcp.json` in a project. It reads the token from the `MCP_KIT_TOKEN` environment variable, so the secret stays out of the repo.
 
-**Claude Desktop (stdio).** Run `npm run build`, then add the entry from [`examples/client-config/claude-desktop.json`](examples/client-config/claude-desktop.json) to `claude_desktop_config.json` with the absolute path fixed. Stdio uses no token. The process runs as you, and `STDIO_SCOPES` sets what the local session may do. Set it to `read` for a read-only server.
+**Claude Desktop (stdio).** Run `npm run build`, then add the entry from [`examples/client-config/claude-desktop.json`](examples/client-config/claude-desktop.json) to `claude_desktop_config.json` with the absolute path fixed. Stdio uses no token. The process runs as you, and `STDIO_SCOPES` sets what the local session may do. Set it to `read` for a read-only server. Point stdio clients at `node` directly, as that file does, not at `npm run start:stdio`: npm writes its script banner to stdout, which is the protocol stream.
 
 ### Docker
 
@@ -169,7 +190,7 @@ The example server reads environment variables (see [`.env.example`](.env.exampl
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
 | `STDIO_SCOPES` | `read,write` | Scopes granted to the local session in `--stdio` mode. |
 
-Invalid values stop startup with a message listing every problem.
+An empty value (`PORT=`) counts as unset and gets the default. Invalid values stop startup with a message listing every problem. `RATE_LIMIT_CAPACITY` must be at least 1.
 
 ## Errors
 
@@ -190,6 +211,8 @@ Tool-level failures come back as a normal `CallToolResult` with `isError: true`.
 ```
 
 The codes are `forbidden`, `invalid_input`, `not_found`, `conflict` and `internal`, plus anything else in `ErrorCode`. Failures before the MCP layer use HTTP status codes and a JSON-RPC error body: `401` (with a `WWW-Authenticate: Bearer` challenge), `403` (origin), `405`, `413`, `429` (with `Retry-After` and `RateLimit-Limit` / `RateLimit-Remaining`). A call to an unknown tool is a JSON-RPC `InvalidParams` error, as the spec requires.
+
+Some clients react to any `401` by offering an OAuth sign-in (the MCP Inspector reports `auth_required`). mcp-kit has no OAuth, so treat that as "the token is missing, wrong, expired or revoked". The server log has the exact reason.
 
 ## Security notes
 
